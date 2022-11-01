@@ -12,7 +12,7 @@ What is special about this domain name is the presence of several traits to iden
 
 ## Build with Nextjs
 
-You can clone this DAPP and build new version with your own. clone this DAPP :
+You can clone this DAPP and build new version with your own. clone this DAPP.
 
 ```
 git clone https://github.com/usofnem/registrar-app.git

@@ -1,6 +1,18 @@
 import './styles/styles.css';
-import React from 'react'
-import Head from 'next/head'
+import React from 'react';
+import Head from 'next/head';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Navigation from '../src/components/Navigation';
+
+const darkTheme = createTheme({
+  typography: {
+		fontFamily: 'monospace'
+				},
+  palette: {
+    mode: 'dark',
+  },
+});
 
 function MyApp({ Component, pageProps }) {
   return (
@@ -15,7 +27,11 @@ function MyApp({ Component, pageProps }) {
         />
         <title>Usofnem Registrar | Use Of Name for Anything Across Web3</title>
       </Head>
-      <Component {...pageProps} />
+      <ThemeProvider theme={darkTheme}>
+        <CssBaseline />
+          <Component {...pageProps} />
+        <Navigation/>
+      </ThemeProvider>
     </>
   )
 }

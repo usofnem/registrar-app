@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router'
 import { ethers } from "ethers";
 import { Usofnem, UsofnemResolve } from '../config';
 import UsofnemAbi from '../src/contracts/Usofnem.json';
@@ -19,15 +18,12 @@ import {
 	Chip,
 	Avatar,
 	TextField,
-	Stack,
-	MenuItem,
-	Select,
-	FormControl,
-	FormHelperText
+	Stack
 } from '@mui/material';
 import Faq from '../src/components/Faq';
 import Footer from '../src/components/Footer';
 import NotConnected from '../src/components/NotConnected';
+import ItemReverse from '../src/components/ItemReverse';
 
 const ColorButton = styled(Button)(({ theme }) => ({
 	color: theme.palette.getContrastText(amber[500]),
@@ -38,15 +34,14 @@ const ColorButton = styled(Button)(({ theme }) => ({
 	},
 }));
 
-const App = () => {
+const Reverse = () => {
 
 	const [currentAccount, setCurrentAccount] = useState('');
 	// Add some state data propertie
-	const [username, setUsername] = useState('');
-	const [category, setCategory] = useState('');
+	const [reversed, setReversed] = useState('');
 	const [network, setNetwork] = useState('');
 	const [resolved, setResolved] = useState('');
-	const router = useRouter();
+
 
 	// Implement your connectWallet method here
 	async function connectWallet() {
@@ -182,101 +177,6 @@ const App = () => {
 		}
 	};
 
-	const userRegister = async () => {
-		// Don't run if the field is empty
-		if (!username, !category) { return }
-		// Alert the user if the domain is too short
-		if (username.length < 1) {
-			alert('Domain must be at least 1 characters long');
-			toast('Domain must be at least 1 characters long',
-				{
-					icon: '👏',
-					style: {
-						borderRadius: '10px',
-						background: '#333',
-						color: '#fff',
-					},
-				}
-			);
-			return;
-		}
-		// Calculate price based on length of username (change this to match your contract)
-		const price = username.length === 1 ? '0.002' : username.length === 2 ? '0.002' : username.length === 3 ? '0.002' : username.length === 4 ? '0.002' : username.length === 5 ? '0.0015' : username.length === 6 ? '0.0015' : username.length === 7 ? '0.0015' : username.length === 8 ? '0.001' : '0.0005';
-		console.log("Minting domain", username, "with price", price);
-		toast('Minting domain', username, 'with price', price,
-			{
-				icon: '👏',
-				style: {
-					borderRadius: '10px',
-					background: '#333',
-					color: '#fff',
-				},
-			}
-		);
-		try {
-			const { ethereum } = window;
-			if (ethereum) {
-				const provider = new ethers.providers.Web3Provider(ethereum);
-				const signer = provider.getSigner();
-				const contract = new ethers.Contract(Usofnem, UsofnemAbi.abi, signer);
-
-				console.log("Going to pop wallet now to pay gas...")
-				toast('Going to pop wallet to pay gas...!',
-					{
-						icon: '💲',
-						style: {
-							borderRadius: '10px',
-							background: '#333',
-							color: '#fff',
-						},
-					}
-				);
-				let tx = await contract.register(username, category, { value: ethers.utils.parseEther(price) });
-				// Wait for the transaction to be mined
-				const receipt = await tx.wait();
-
-				// Check if the transaction was successfully completed
-				if (receipt.status === 1) {
-					console.log("Domain minted! https://testnet.bscscan.com/tx/" + tx.hash);
-					toast('Success! Please wait ...!',
-						{
-							icon: '👏',
-							style: {
-								borderRadius: '10px',
-								background: '#333',
-								color: '#fff',
-							},
-						}
-					);
-
-					// Open Claimed page after 2 seconds
-					setTimeout(() => {
-						router.push('/claimed');
-					}, 2000);
-
-					setUsername('');
-					setCategory('');
-				}
-				else {
-					alert("Transaction failed! Please try again");
-					toast('Transaction failed! Please try again',
-						{
-							icon: '❌',
-							style: {
-								borderRadius: '10px',
-								background: '#333',
-								color: '#fff',
-							},
-						}
-					);
-				}
-			}
-		}
-		catch (error) {
-			console.log(error);
-		}
-	}
-
 	const getResolve = async () => {
 		if (!currentAccount || !network) { return }
 
@@ -310,6 +210,47 @@ const App = () => {
 		}
 	}, [currentAccount, network]);
 
+	const userReverse = async () => {
+		if (!reversed) {return}
+		console.log("Domain Reversed");
+
+		try {
+			const { ethereum } = window;
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum);
+				const signer = provider.getSigner();
+				const contract = new ethers.Contract(UsofnemResolve, UsofnemReverseAbi.abi, signer);
+
+
+				let tx = await contract.setReverse(reversed);
+				// Wait for the transaction to be mined 
+				await tx.wait();
+				console.log("Domain Reversed! https://testnet.bscscan.com/tx/" + tx.hash);
+				toast('Domain Reversed!',
+					{
+						icon: '👏',
+						style: {
+							borderRadius: '10px',
+							background: '#333',
+							color: '#fff',
+						},
+					}
+				);
+
+				setReversed('');
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
+	// This will run any time currentAccount or network are changed
+	useEffect(() => {
+		if (network === 'BSC Testnet') {
+			userReverse();
+		}
+	}, [currentAccount, network]);
+
 	// Render Methods
 	const renderNotConnectedContainer = () => (
 		<NotConnected>
@@ -320,53 +261,48 @@ const App = () => {
 	);
 
 	// Form to enter username and data
-	const renderRegisterForm = () => {
+	const renderReverseForm = () => {
 		// If not on BSC Testnet, render "Please connect to BSC Testnet"
 		if (network !== 'BSC Testnet') {
 			return (
-				<NotConnected>
-					<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={switchNetwork}>
-						Switch Network
-					</ColorButton>
-				</NotConnected>
+				<Box sx={{ pt: 8, pb: 6 }}>
+					<Container maxWidth="sm">
+						<Typography variant="body1" align="center" color="text.secondary" paragraph>
+							Switch to BSC Network if you want to claim or view claimed domain on this platform.
+						</Typography>
+						<Stack sx={{ pt: 4 }} direction="row" spacing={2} justifyContent="center">
+							<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={switchNetwork}>
+								Switch Network
+							</ColorButton>
+						</Stack>
+					</Container>
+				</Box>
 			);
 		}
-
 		// The rest of the function remains the same
 		return (
 
-			<Box sx={{ width: '100%' }}>
-				<Image width="100vw" height="10" layout="responsive" src="/header-cz.svg" alt="CZ Friends" />
-				<Box sx={{ display: 'inline', alignItems: 'center', '& > :not(style)': { p: 1, mt: 1 }, }}>
-					<TextField fullWidth
-						value={username}
-						helperText="Just write Username! We support all character (emoji, number or whatever you want)"
-						onChange={e => setUsername(e.target.value)}
-					/>
-					<FormControl fullWidth>
-						<Select
-							value={category}
-							onChange={e => setCategory(e.target.value)}
-						>
-							<MenuItem value={'Letter'}>Letter</MenuItem>
-							<MenuItem value={'Number'}>Number</MenuItem>
-							<MenuItem value={'Emoji'}>Emoji</MenuItem>
-							<MenuItem value={'Kaomoji'}>Kaomoji</MenuItem>
-							<MenuItem value={'Symbol'}>Symbol</MenuItem>
-							<MenuItem value={'Special Character'}>Special Character</MenuItem>
-						</Select>
-						<FormHelperText>Your category of name! (This trait atribute of Domain name) Letter (abc/ABC), Number (123), Emoji (❤☢🔶), Kaomoji (⊙ˍ⊙), Symbol (௹¥฿), Special Charaacter (_&#*)</FormHelperText>
-					</FormControl>
+			<>
+				<ItemReverse />
+				<Box sx={{ width: '100%' }}>
+					<Image width="100vw" height="10" layout="responsive" src="/header-cz.svg" alt="CZ Friends" />
+					<Box sx={{ display: 'inline', alignItems: 'center', '& > :not(style)': { p: 1, mt: 1 }, }}>
+						<TextField fullWidth
+							value={reversed}
+							required
+							helperText="Just write the domain/username without the .tld to reverse your domain name! Because .tld will be automatically bound to the domain name.(Note: Make sure only the domain/username you have from the previous registration.)"
+							onChange={e => setReversed(e.target.value)} />
 
-					{(
-						<Stack spacing={2} direction="row">
-							<ColorButton sx={{ width: '100%', mt: 4, mb: 4 }} variant="contained" onClick={userRegister}>
-								Register
-							</ColorButton>
-						</Stack>
-					)}
+						{(
+							<Stack spacing={2} direction="row">
+								<ColorButton sx={{ width: '100%', mt: 4, mb: 4 }} variant="contained" onClick={userReverse}>
+									Reverse
+								</ColorButton>
+							</Stack>
+						)}
+					</Box>
 				</Box>
-			</Box>
+			</>
 
 		);
 	}
@@ -393,7 +329,7 @@ const App = () => {
 				{!currentAccount && renderNotConnectedContainer()}
 			</Container>
 			<Container sx={{ mt: 3 }}>
-				{currentAccount && renderRegisterForm()}
+				{currentAccount && renderReverseForm()}
 			</Container>
 			<Toaster />
 			<Container sx={{ mt: 3, mb: 5 }}>
@@ -404,4 +340,4 @@ const App = () => {
 	);
 }
 
-export default App;
+export default Reverse;

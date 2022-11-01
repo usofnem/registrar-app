@@ -1,15 +1,14 @@
-import { useMemo, useEffect, useState } from 'react';
-import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react';
 import { ethers } from "ethers";
+import { Usofnem, UsofnemResolve } from '../config';
 import UsofnemAbi from '../src/contracts/Usofnem.json';
+import UsofnemReverseAbi from '../src/contracts/UsofnemReverse.json';
 import Image from 'next/image';
 import toast, { Toaster } from 'react-hot-toast';
 import { networks } from '../src/utils/networks';
 import { amber } from '@mui/material/colors';
-import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
 import {
-	useMediaQuery,
-	CssBaseline,
 	Button,
 	Container,
 	AppBar,
@@ -27,7 +26,8 @@ import {
 } from '@mui/material';
 import Faq from '../src/components/Faq';
 import Footer from '../src/components/Footer';
-import Navigation from '../src/components/Navigation';
+import NotConnected from '../src/components/NotConnected';
+import ItemRecord from '../src/components/ItemRecord';
 
 const ColorButton = styled(Button)(({ theme }) => ({
 	color: theme.palette.getContrastText(amber[500]),
@@ -38,25 +38,8 @@ const ColorButton = styled(Button)(({ theme }) => ({
 	},
 }));
 
-
-// Add the name you will be minting
-const Usofnem = '0x7ddfcE4733F87097D775a911FD7BF43a6BDbBD5E';
-
 const myAccount = () => {
-	const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
-	const theme = useMemo(
-		() =>
-			createTheme({
-				typography: {
-					fontFamily: 'monospace'
-				},
-				palette: {
-					mode: prefersDarkMode ? 'dark' : 'light',
-				},
-			}),
-		[prefersDarkMode],
-	);
 	const [currentAccount, setCurrentAccount] = useState('');
 	// Add some state data propertie
 	const [username, setUsername] = useState('');
@@ -65,7 +48,7 @@ const myAccount = () => {
 	const [description, setDesc] = useState('');
 	const [socialmedia, setSocmed] = useState('');
 	const [network, setNetwork] = useState('');
-	const router = useRouter();
+	const [resolved, setResolved] = useState('');
 
 
 	// Implement your connectWallet method here
@@ -106,6 +89,47 @@ const myAccount = () => {
 					},
 				}
 			);
+		}
+	}
+
+	const switchNetwork = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Mumbai testnet
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x61' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x61',
+									chainName: 'BSC Testnet',
+									rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+									nativeCurrency: {
+										name: "BSC Testnet",
+										symbol: "BNB",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://testnet.bscscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
 		}
 	}
 
@@ -161,6 +185,39 @@ const myAccount = () => {
 		}
 	};
 
+	const getResolve = async () => {
+		if (!currentAccount || !network) { return }
+
+		try {
+
+			const { ethereum } = window;
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum);
+				const signer = provider.getSigner();
+				const contractReverse = new ethers.Contract(UsofnemResolve, UsofnemReverseAbi.abi, signer);
+				const contractUsofnem = new ethers.Contract(Usofnem, UsofnemAbi.abi, signer);
+
+				const resolve = await contractReverse.resolve(currentAccount);
+				const withtld = await contractUsofnem.getRecord(resolve, 0);
+				console.log(resolve + withtld)
+
+				setResolved(resolve + withtld);
+
+			}
+
+
+		}
+		catch (error) {
+			console.log(error);
+		}
+	}
+
+	useEffect(() => {
+		if (currentAccount || network) {
+			getResolve();
+		}
+	}, [currentAccount, network]);
+
 	const userRecord = async () => {
 		if (!tld, !avatar, !description, !socialmedia || !username) { return }
 		console.log("Updating domain", username, "with record", tld, avatar, description, socialmedia);
@@ -203,74 +260,89 @@ const myAccount = () => {
 	useEffect(() => {
 		if (network === 'BSC Testnet') {
 			userRecord();
-		} else {
-			router.push('/record');
 		}
 	}, [currentAccount, network]);
 
 	// Render Methods
 	const renderNotConnectedContainer = () => (
-		<div className="connect-wallet-container">
-			<button onClick={connectWallet} className="cta-button connect-wallet-button">
+		<NotConnected>
+			<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={connectWallet}>
 				Connect Wallet
-			</button>
-		</div>
+			</ColorButton>
+		</NotConnected>
 	);
 
 	// Form to enter username and data
 	const renderRecordForm = () => {
+		// If not on BSC Testnet, render "Please connect to BSC Testnet"
+		if (network !== 'BSC Testnet') {
+			return (
+				<Box sx={{ pt: 8, pb: 6 }}>
+					<Container maxWidth="sm">
+						<Typography variant="body1" align="center" color="text.secondary" paragraph>
+							Switch to BSC Network if you want to claim or view claimed domain on this platform.
+						</Typography>
+						<Stack sx={{ pt: 4 }} direction="row" spacing={2} justifyContent="center">
+							<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={switchNetwork}>
+								Switch Network
+							</ColorButton>
+						</Stack>
+					</Container>
+				</Box>
+			);
+		}
 		// The rest of the function remains the same
 		return (
 
-			<Box sx={{ width: '100%' }}>
-				<Image width="100vw" height="10" layout="responsive" src="/header-cz.svg" alt="CZ Friends" />
-				<Box sx={{ display: 'inline', alignItems: 'center', '& > :not(style)': { p: 1, mt: 1 }, }}>
-					<TextField fullWidth
-						value={username}
-						required
-						helperText="Username can't be changed! Tips: Remove TLD from your name and write again username without TLD (Only write username that you have from the previous registration.)"
-						onChange={e => setUsername(e.target.value)}
-					/>
-					<FormControl fullWidth>
-						<Select
-							value={tld}
-							onChange={e => setTld(e.target.value)}
+			<>
+				<ItemRecord />
+				<Box sx={{ width: '100%' }}>
+					<Image width="100vw" height="10" layout="responsive" src="/header-cz.svg" alt="CZ Friends" />
+					<Box sx={{ display: 'inline', alignItems: 'center', '& > :not(style)': { p: 1, mt: 1 }, }}>
+						<TextField fullWidth
+							value={username}
+							required
+							helperText="Domain name cannot be changed! Tip: Remove the TLD from your name and rewrite the domain name without the TLD (Only write the domain name you had from the previous registration.)"
+							onChange={e => setUsername(e.target.value)} />
+						<FormControl fullWidth>
+							<Select
+								value={tld}
+								onChange={e => setTld(e.target.value)}
+							>
+								<MenuItem value={'.com'}>.com</MenuItem>
+								<MenuItem value={'.io'}>.io</MenuItem>
+								<MenuItem value={'.wtf'}>.wtf</MenuItem>
+								<MenuItem value={'.og'}>.og</MenuItem>
+								<MenuItem value={'.town'}>.town</MenuItem>
+								<MenuItem value={'.xyz'}>.xyz</MenuItem>
+							</Select>
+							<FormHelperText>Your Favorite TLD! This trait atribute for your name! Tell us the TLD you want if it's not available here.</FormHelperText>
+						</FormControl>
+						<TextField fullWidth
+							value={avatar}
+							helperText="Your Favorite Avatar URL for your Name! (Example: https://avatars.dicebear.com/api/open-peeps/awesome-image.png)"
+							onChange={e => setAvatar(e.target.value)}
 						>
-							<MenuItem value={'.com'}>.com</MenuItem>
-							<MenuItem value={'.io'}>.io</MenuItem>
-							<MenuItem value={'.wtf'}>.wtf</MenuItem>
-							<MenuItem value={'.og'}>.og</MenuItem>
-							<MenuItem value={'.town'}>.town</MenuItem>
-							<MenuItem value={'.xyz'}>.xyz</MenuItem>
-						</Select>
-						<FormHelperText>Your Favorite TLD! This trait atribute for your name! Tell us the TLD you want if it's not available here.</FormHelperText>
-					</FormControl>
-					<TextField fullWidth
-						value={avatar}
-						helperText="Your Favorite Avatar URL for your Name! (Example: https://avatars.dicebear.com/api/open-peeps/awesome-image.png)"
-						onChange={e => setAvatar(e.target.value)}
-						>
-					</TextField>
-					<TextField fullWidth
-						value={description}
-						helperText="Just write Description about you and this name!"
-						onChange={e => setDesc(e.target.value)}
-					/>
-					<TextField fullWidth
-						value={socialmedia}
-						helperText="Just write Username for your social media account without @symbol!"
-						onChange={e => setSocmed(e.target.value)}
-					/>
+						</TextField>
+						<TextField fullWidth
+							value={description}
+							helperText="Just write Description about you and this name!"
+							onChange={e => setDesc(e.target.value)} />
+						<TextField fullWidth
+							value={socialmedia}
+							helperText="Just write Username for your social media account without @symbol!"
+							onChange={e => setSocmed(e.target.value)} />
 
-					{(
-						<Stack spacing={2} direction="row">
-							<ColorButton sx={{ width: '100%', mt: 4, mb: 4 }} variant="contained" onClick={userRecord}>
-								Update Record
-							</ColorButton>
-						</Stack>
-					)}
+						{(
+							<Stack spacing={2} direction="row">
+								<ColorButton sx={{ width: '100%', mt: 4, mb: 4 }} variant="contained" onClick={userRecord}>
+									Update Record
+								</ColorButton>
+							</Stack>
+						)}
+					</Box>
 				</Box>
-			</Box>
+			</>
 
 		);
 	}
@@ -280,26 +352,19 @@ const myAccount = () => {
 	}, []);
 
 	return (
-		<ThemeProvider theme={theme}>
-			<CssBaseline />
-			<Box>
-				<AppBar position="static">
-					<Container>
-						<Toolbar>
-							<Typography variant="body1" sx={{ flexGrow: 1, mt: 1 }}>
-								<a href="/" target="_blank">
-									<Image width="130" height="24" src="/usofnem.svg" alt="Usofnem Registrar" />
-								</a>
-							</Typography>
-							<Chip
-								avatar={<Avatar alt="Network logo" src={network.includes("BSC Testnet") ? '/bsc-logo.svg' : '/ethlogo.png'} />}
-								label={currentAccount ? <Typography variant="body1"> {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </Typography> : <Typography variant="body1"> Not connected </Typography>}
-								variant="outlined"
-							/>
-						</Toolbar>
-					</Container>
-				</AppBar>
-			</Box>
+		<>
+			<AppBar position="static">
+				<Toolbar>
+					<Typography variant="body1" sx={{ flexGrow: 1, mt: 1 }}>
+						<Image width="130" height="24" src="/usofnem.svg" alt="Usofnem Registrar" />
+					</Typography>
+					<Chip
+						avatar={<Avatar alt="Network logo" src={network.includes("BSC Testnet") ? '/bsc-logo.svg' : '/ethlogo.png'} />}
+						label={currentAccount ? (<Typography variant="body1"> {resolved ? (<>{resolved}</>
+						) : (<> {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </>)} {' '} </Typography>) : (<Typography variant="body1"> Not connected </Typography>)}
+						variant="outlined" />
+				</Toolbar>
+			</AppBar>
 			<Container sx={{ mt: 5 }}>
 				{!currentAccount && renderNotConnectedContainer()}
 			</Container>
@@ -311,8 +376,7 @@ const myAccount = () => {
 				<Faq />
 			</Container>
 			<Footer />
-			<Navigation/>
-		</ThemeProvider>
+		</>
 	);
 }
 

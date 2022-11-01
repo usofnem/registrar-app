@@ -24,7 +24,7 @@ export default function Navigation() {
                         href="/record"
                         icon={<GraphicEqOutlined />}
                     />
-                    <BottomNavigationAction label="News" href="/news" icon={<ArticleOutlined />} />
+                    <BottomNavigationAction label="Reverse" href="/reverse" icon={<ArticleOutlined />} />
                 </BottomNavigation>
             </Paper>
         </Box>

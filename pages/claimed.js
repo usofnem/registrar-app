@@ -1,15 +1,15 @@
-import { useMemo, useEffect, useState } from 'react';
-import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
+import { Usofnem, UsofnemResolve } from '../config';
 import UsofnemAbi from '../src/contracts/Usofnem.json';
+import UsofnemReverseAbi from '../src/contracts/UsofnemReverse.json';
 import Image from 'next/image';
 import toast, { Toaster } from 'react-hot-toast';
 import { networks } from '../src/utils/networks';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { amber } from '@mui/material/colors';
+import { styled } from '@mui/material/styles';
 import {
-	useMediaQuery,
-	CssBaseline,
 	Container,
 	Card,
 	CardActionArea,
@@ -21,36 +21,31 @@ import {
 	Typography,
 	Chip,
 	Avatar,
-	Grid
+	Grid,
+	Button,
+	Stack
 } from '@mui/material';
 import Faq from '../src/components/Faq';
 import Footer from '../src/components/Footer';
-import Navigation from '../src/components/Navigation';
+import NotConnected from '../src/components/NotConnected';
+import ItemClaimed from '../src/components/ItemClaimed';
 
-
-// Add the name you will be minting
-const Usofnem = '0x7ddfcE4733F87097D775a911FD7BF43a6BDbBD5E';
+const ColorButton = styled(Button)(({ theme }) => ({
+	color: theme.palette.getContrastText(amber[500]),
+	backgroundColor: amber[500],
+	alignItems: 'center',
+	'&:hover': {
+		backgroundColor: amber[700],
+	},
+}));
 
 const Claimed = () => {
-	const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
-	const theme = useMemo(
-		() =>
-			createTheme({
-				typography: {
-					fontFamily: 'monospace'
-				},
-				palette: {
-					mode: prefersDarkMode ? 'dark' : 'light',
-				},
-			}),
-		[prefersDarkMode],
-	);
 	const [currentAccount, setCurrentAccount] = useState('');
 	// Add some state data propertie
 	const [network, setNetwork] = useState('');
 	const [mints, setMints] = useState([]);
-	const router = useRouter();
+	const [resolved, setResolved] = useState('');
 
 	// Implement your connectWallet method here
 	async function connectWallet() {
@@ -92,6 +87,80 @@ const Claimed = () => {
 			);
 		}
 	}
+
+	const switchNetwork = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Mumbai testnet
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x61' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x61',
+									chainName: 'BSC Testnet',
+									rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+									nativeCurrency: {
+										name: "BSC Testnet",
+										symbol: "BNB",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://testnet.bscscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
+	const getResolve = async () => {
+		if (!currentAccount || !network) { return }
+
+		try {
+
+			const { ethereum } = window;
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum);
+				const signer = provider.getSigner();
+				const contractReverse = new ethers.Contract(UsofnemResolve, UsofnemReverseAbi.abi, signer);
+				const contractUsofnem = new ethers.Contract(Usofnem, UsofnemAbi.abi, signer);
+
+				const resolve = await contractReverse.resolve(currentAccount);
+				const withtld = await contractUsofnem.getRecord(resolve, 0);
+				console.log(resolve + withtld)
+
+				setResolved(resolve + withtld);
+
+			}
+
+
+		}
+		catch (error) {
+			console.log(error);
+		}
+	}
+
+	useEffect(() => {
+		if (currentAccount || network) {
+			getResolve();
+		}
+	}, [currentAccount, network]);
 
 	const checkIfWalletIsConnected = async () => {
 		const { ethereum } = window;
@@ -159,8 +228,8 @@ const Claimed = () => {
 				const names = await contract.getAllNames();
 				// For each name, get the record
 				const armySquad = await Promise.all(names.map(async (name) => {
-					const owner = await contract.username(name);
-					const record = await contract.tokenURI(owner);
+					const nameid = await contract.username(name);
+					const record = await contract.tokenURI(nameid);
 					const data = Buffer.from(record.substring(29), 'base64');
 					const result = JSON.parse(data.toString());
 					console.log(result);
@@ -186,47 +255,71 @@ const Claimed = () => {
 	useEffect(() => {
 		if (network === 'BSC Testnet') {
 			fetchMints();
-		} else {
-			router.push('/claimed');
 		}
 	}, [currentAccount, network]);
 
 	// Render Methods
 	const renderNotConnectedContainer = () => (
-		<div className="connect-wallet-container">
-			<button onClick={connectWallet} className="cta-button connect-wallet-button">
+		<NotConnected>
+			<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={connectWallet}>
 				Connect Wallet
-			</button>
-		</div>
+			</ColorButton>
+		</NotConnected>
 	);
 
 	// Add this render function next to your other render functions
 	const renderMints = () => {
+		// If not on BSC Testnet, render "Please connect to BSC Testnet"
+		if (network !== 'BSC Testnet') {
+			return (
+				<Box sx={{ pt: 8, pb: 6 }}>
+					<Container maxWidth="sm">
+						<Typography variant="body1" align="center" color="text.secondary" paragraph>
+							Switch to BSC Network if you want to claim or view claimed domain on this platform.
+						</Typography>
+						<Stack sx={{ pt: 4 }} direction="row" spacing={2} justifyContent="center">
+							<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={switchNetwork}>
+								Switch Network
+							</ColorButton>
+						</Stack>
+					</Container>
+				</Box>
+			);
+		}
 		if (mints.length > 0) {
 			return (
-				<Box sx={{ flexGrow: 1 }}>
-					<Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
-						{mints.map((mint, index) => {
-							return (
-								<Grid item xs={2} sm={4} md={4} key={index}>
-									<Card sx={{ maxWidth: 345 }}>
-										<CardActionArea>
-											<CardMedia sx={{ maxHeight: 300 }}
-												component="img"
-												image={mint.avatar}
-												alt={mint.name}
-											/>
-											<CardContent>
-												<Typography gutterBottom variant="body1" component="div">
-													{mint.name}
-												</Typography>
-											</CardContent>
+				<>
+					<ItemClaimed />
+					<Box sx={{ flexGrow: 1 }}>
+						<Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+							{mints.map((mint, index) => {
+								return (
+									<Grid item xs={12} md={6} key={index}>
+										<CardActionArea component="a" href="/record">
+											<Card sx={{ display: 'flex' }}>
+												<CardContent sx={{ flex: '1', objectFit: 'contain' }}>
+													<Typography component="h2" variant="h5">
+														@{mint.name}
+													</Typography>
+													<Typography variant="subtitle1" color="text.secondary">
+														#ID-{mint.id}
+													</Typography>
+													<Typography variant="body2" paragraph>
+														{mint.desc.substring(0, 55)} . . .
+													</Typography>
+												</CardContent>
+
+												<CardMedia sx={{ width: 150, objectFit: 'contain' }}
+													component="img"
+													image={mint.avatar}
+													alt={mint.name} />
+											</Card>
 										</CardActionArea>
-									</Card>
-								</Grid>)
-						})}
-					</Grid>
-				</Box>
+									</Grid>);
+							})}
+						</Grid>
+					</Box>
+				</>
 			);
 		}
 	};
@@ -236,39 +329,31 @@ const Claimed = () => {
 	}, []);
 
 	return (
-		<ThemeProvider theme={theme}>
-			<CssBaseline />
-			<Box>
-				<AppBar position="static">
-					<Container>
-						<Toolbar>
-							<Typography variant="body1" sx={{ flexGrow: 1, mt: 1 }}>
-								<a href="/" target="_blank">
-								<Image width="130" height="24" src="/usofnem.svg" alt="Usofnem Registrar" />
-								</a>
-							</Typography>
-							<Chip
-								avatar={<Avatar alt="Network logo" src={network.includes("BSC Testnet") ? '/bsc-logo.svg' : '/ethlogo.png'} />}
-								label={currentAccount ? <Typography variant="body1"> {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </Typography> : <Typography variant="body1"> Not connected </Typography>}
-								variant="outlined"
-							/>
-						</Toolbar>
-					</Container>
-				</AppBar>
-			</Box>
+		<>
+			<AppBar position="static">
+				<Toolbar>
+					<Typography variant="body1" sx={{ flexGrow: 1, mt: 1 }}>
+						<Image width="130" height="24" src="/usofnem.svg" alt="Usofnem Registrar" />
+					</Typography>
+					<Chip
+						avatar={<Avatar alt="Network logo" src={network.includes("BSC Testnet") ? '/bsc-logo.svg' : '/ethlogo.png'} />}
+						label={currentAccount ? (<Typography variant="body1"> {resolved ? (<>{resolved}</>
+						) : (<> {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </>)} {' '} </Typography>) : (<Typography variant="body1"> Not connected </Typography>)}
+						variant="outlined" />
+				</Toolbar>
+			</AppBar>
 			<Container sx={{ mt: 5 }}>
 				{!currentAccount && renderNotConnectedContainer()}
 			</Container>
 			<Container sx={{ mt: 3 }}>
-				{mints && renderMints()}
+				{currentAccount && renderMints()}
 			</Container>
 			<Toaster />
 			<Container sx={{ mt: 3, mb: 5 }}>
 				<Faq />
 			</Container>
 			<Footer />
-			<Navigation/>
-		</ThemeProvider>
+		</>
 	);
 }
 

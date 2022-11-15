@@ -7,8 +7,8 @@ import Navigation from '../src/components/Navigation';
 
 const darkTheme = createTheme({
   typography: {
-		fontFamily: 'monospace'
-				},
+    fontFamily: 'monospace'
+  },
   palette: {
     mode: 'dark',
   },
@@ -29,8 +29,8 @@ function MyApp({ Component, pageProps }) {
       </Head>
       <ThemeProvider theme={darkTheme}>
         <CssBaseline />
-          <Component {...pageProps} />
-        <Navigation/>
+        <Component {...pageProps} />
+        <Navigation />
       </ThemeProvider>
     </>
   )

@@ -84,13 +84,13 @@ const Reverse = () => {
 		}
 	}
 
-	const switchNetwork = async () => {
+	const switchToBNBChain = async () => {
 		if (window.ethereum) {
 			try {
-				// Try to switch to the Mumbai testnet
+				// Try to switch to the BNB Chain
 				await window.ethereum.request({
 					method: 'wallet_switchEthereumChain',
-					params: [{ chainId: '0x61' }], // Check networks.js for hexadecimal network ids
+					params: [{ chainId: '0x38' }], // Check networks.js for hexadecimal network ids
 				});
 			} catch (error) {
 				// This error code means that the chain we want has not been added to MetaMask
@@ -101,15 +101,97 @@ const Reverse = () => {
 							method: 'wallet_addEthereumChain',
 							params: [
 								{
-									chainId: '0x61',
-									chainName: 'BSC Testnet',
-									rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+									chainId: '0x38',
+									chainName: 'BSC Mainnet',
+									rpcUrls: ['https://rpc.ankr.com/bsc'],
 									nativeCurrency: {
-										name: "BSC Testnet",
+										name: "BSC Mainnet",
 										symbol: "BNB",
 										decimals: 18
 									},
-									blockExplorerUrls: ["https://testnet.bscscan.com"]
+									blockExplorerUrls: ["https://bscscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
+	const switchToPolygonChain = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Polygon Chain
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x89' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x89',
+									chainName: 'Polygon',
+									rpcUrls: ['https://rpc.ankr.com/polygon'],
+									nativeCurrency: {
+										name: "Polygon",
+										symbol: "MATIC",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://polygonscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
+	const switchToEthereum = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Polygon Chain
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x1' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x1',
+									chainName: 'Ethereum',
+									rpcUrls: ['https://rpc.ankr.com/eth'],
+									nativeCurrency: {
+										name: "Ethereum",
+										symbol: "ETH",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://etherscan.io"]
 								},
 							],
 						});
@@ -225,7 +307,6 @@ const Reverse = () => {
 				let tx = await contract.setReverse(reversed);
 				// Wait for the transaction to be mined 
 				await tx.wait();
-				console.log("Domain Reversed! https://testnet.bscscan.com/tx/" + tx.hash);
 				toast('Domain Reversed!',
 					{
 						icon: '👏',
@@ -246,7 +327,7 @@ const Reverse = () => {
 
 	// This will run any time currentAccount or network are changed
 	useEffect(() => {
-		if (network === 'BSC Testnet') {
+		if (network === 'BSC Mainnet' || network === 'Polygon' || network === 'Ethereum') {
 			userReverse();
 		}
 	}, [currentAccount, network]);
@@ -262,23 +343,29 @@ const Reverse = () => {
 
 	// Form to enter username and data
 	const renderReverseForm = () => {
-		// If not on BSC Testnet, render "Please connect to BSC Testnet"
-		if (network !== 'BSC Testnet') {
-			return (
-				<Box sx={{ pt: 8, pb: 6 }}>
-					<Container maxWidth="sm">
-						<Typography variant="body1" align="center" color="text.secondary" paragraph>
-							Switch to BSC Network if you want to claim or view claimed domain on this platform.
+		// If not on BSC Mainnet, Ethereum or Polygon, render "Please connect to BSC Mainnet, Ethereum or Polygon"
+		if (network !== 'BSC Mainnet' && network !== 'Polygon' && network !== 'Ethereum') {
+            return (
+                <Box sx={{ pt: 8, pb: 6 }}>
+                    <Container maxWidth="sm">
+                    <Typography variant="body1" align="center" color="text.secondary" paragraph>
+						Please Login to BNBCHAIN, ETHEREUM or POLYGON Network if you want to claim or view claimed domain on this platform.
 						</Typography>
 						<Stack sx={{ pt: 4 }} direction="row" spacing={2} justifyContent="center">
-							<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={switchNetwork}>
-								Switch Network
-							</ColorButton>
+						<ColorButton align="center" variant="contained" onClick={switchToBNBChain}>
+							Login with BNBCHAIN
+						</ColorButton>
+                        <ColorButton align="center" variant="contained" onClick={switchToEthereum}>
+							Login With ETHEREUM
+						</ColorButton>
+						<ColorButton align="center" variant="contained" onClick={switchToPolygonChain}>
+							Login With POLYGON
+						</ColorButton>
 						</Stack>
-					</Container>
-				</Box>
-			);
-		}
+                    </Container>
+                </Box>
+            );
+        }
 		// The rest of the function remains the same
 		return (
 
@@ -314,17 +401,18 @@ const Reverse = () => {
 	return (
 		<>
 			<AppBar position="static">
-				<Toolbar>
+                <Toolbar>
 					<Typography variant="body1" sx={{ flexGrow: 1, mt: 1 }}>
 						<Image width="130" height="24" src="/usofnem.svg" alt="Usofnem Registrar" />
 					</Typography>
 					<Chip
-						avatar={<Avatar alt="Network logo" src={network.includes("BSC Testnet") ? '/bsc-logo.svg' : '/ethlogo.png'} />}
+						avatar={<Avatar alt="Network logo" src={network.includes("BSC Mainnet") ? '/bsc-logo.svg' : network.includes("Polygon") ? '/polygon-logo.svg' : network.includes("Ethereum") ? '/ethlogo.png' : '/ethlogo.png'} />}
 						label={currentAccount ? (<Typography variant="body1"> {resolved ? (<>{resolved}</>
 						) : (<> {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </>)} {' '} </Typography>) : (<Typography variant="body1"> Not connected </Typography>)}
-						variant="outlined" />
+						variant="outlined"
+					/>
 				</Toolbar>
-			</AppBar>
+            </AppBar>
 			<Container sx={{ mt: 5 }}>
 				{!currentAccount && renderNotConnectedContainer()}
 			</Container>

@@ -164,17 +164,21 @@ contract Usofnem is Ownable, ERC721 {
     }
 
     /// @dev Calculate the name price based on the word length
+    /// @notice 0.01 BNB for 1 - 4 character
+    /// @notice 0.007 BNB for 5 - 7 character
+    /// @notice 0.005 BNB for 8 character
+    /// @notice 0.003 BNB for 9 - 1000 character
     function price(string calldata name) public pure returns (uint256) {
         uint256 len = StringUtils.strlen(name);
         require(len > 0);
         if (len == 1) {
-            return 0.002 * 10**18; /// @notice 0.002 ETH for 1 - 4 character
+            return 0.01 * 10**18;
         } else if (len == 5) {
-            return 0.0015 * 10**18; /// @notice 0.0015 ETH for 5 - 7 character
+            return 0.007 * 10**18;
         } else if (len == 8) {
-            return 0.001 * 10**18; /// @notice 0.001 ETH for 8 character
+            return 0.005 * 10**18;
         } else {
-            return 0.0005 * 10**18; /// @notice 0.0005 ETH for 9 - 1000 character
+            return 0.003 * 10**18;
         }
     }
 
@@ -189,7 +193,7 @@ contract Usofnem is Ownable, ERC721 {
         records[name].category = category;
 
         uint256 _price = this.price(name);
-        require(msg.value >= _price, "Not enough ETH paid");
+        require(msg.value >= _price, "Not enough BNB paid");
 
         uint256 newRecordId = _tokenIds.current();
 
@@ -231,7 +235,7 @@ contract Usofnem is Ownable, ERC721 {
         if (uptodate(records[id[tokenId]].tld)) {
             tld = records[id[tokenId]].tld;
         } else {
-            tld = string(abi.encodePacked(".none"));
+            tld = string(abi.encodePacked(".doge"));
         }
 
         /// @dev If using the default Category
@@ -254,7 +258,7 @@ contract Usofnem is Ownable, ERC721 {
         } else {
             description = string(
                 abi.encodePacked(
-                    "The decentralized croshchain name is permanent, irrevocable or changed and forever lives on the blockchain."
+                    "The decentralized name is permanent, irrevocable or changed and forever lives on the blockchain."
                 )
             );
         }
@@ -279,13 +283,13 @@ contract Usofnem is Ownable, ERC721 {
                         description,
                         '", "image": "',
                         avatar,
-                        '", "attributes": [{"trait_type": "characters","value": "#',
+                        '", "attributes": [{"trait_type": "Characters","value": "#',
                         strLen,
-                        'DigitClub"}, {"trait_type": "tld","value": "',
+                        'DigitClub"}, {"trait_type": "TLD","value": "',
                         tld,
-                        '"}, {"trait_type": "category","value": "',
+                        '"}, {"trait_type": "Category","value": "',
                         category,
-                        '"}, {"trait_type": "artist","value": "@',
+                        '"}, {"trait_type": "Artist","value": "@',
                         socialmedia,
                         '"}]}'
                     )

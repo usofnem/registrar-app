@@ -88,13 +88,13 @@ const Claimed = () => {
 		}
 	}
 
-	const switchNetwork = async () => {
+	const switchToBNBChain = async () => {
 		if (window.ethereum) {
 			try {
-				// Try to switch to the Mumbai testnet
+				// Try to switch to the BNB Chain
 				await window.ethereum.request({
 					method: 'wallet_switchEthereumChain',
-					params: [{ chainId: '0x61' }], // Check networks.js for hexadecimal network ids
+					params: [{ chainId: '0x38' }], // Check networks.js for hexadecimal network ids
 				});
 			} catch (error) {
 				// This error code means that the chain we want has not been added to MetaMask
@@ -105,15 +105,97 @@ const Claimed = () => {
 							method: 'wallet_addEthereumChain',
 							params: [
 								{
-									chainId: '0x61',
-									chainName: 'BSC Testnet',
-									rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+									chainId: '0x38',
+									chainName: 'BSC Mainnet',
+									rpcUrls: ['https://rpc.ankr.com/bsc'],
 									nativeCurrency: {
-										name: "BSC Testnet",
+										name: "BSC Mainnet",
 										symbol: "BNB",
 										decimals: 18
 									},
-									blockExplorerUrls: ["https://testnet.bscscan.com"]
+									blockExplorerUrls: ["https://bscscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
+	const switchToPolygonChain = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Polygon Chain
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x89' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x89',
+									chainName: 'Polygon',
+									rpcUrls: ['https://rpc.ankr.com/polygon'],
+									nativeCurrency: {
+										name: "Polygon",
+										symbol: "MATIC",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://polygonscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
+	const switchToEthereum = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Polygon Chain
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x1' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x1',
+									chainName: 'Ethereum',
+									rpcUrls: ['https://rpc.ankr.com/eth'],
+									nativeCurrency: {
+										name: "Ethereum",
+										symbol: "ETH",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://etherscan.io"]
 								},
 							],
 						});
@@ -235,6 +317,7 @@ const Claimed = () => {
 					console.log(result);
 					return {
 						id: names.indexOf(name),
+						nem: name,
 						name: result.name,
 						desc: result.description,
 						avatar: result.image,
@@ -253,7 +336,7 @@ const Claimed = () => {
 
 	// This will run any time currentAccount or network are changed
 	useEffect(() => {
-		if (network === 'BSC Testnet') {
+		if (network === 'BSC Mainnet' || network === 'Polygon' || network === 'Ethereum') {
 			fetchMints();
 		}
 	}, [currentAccount, network]);
@@ -269,23 +352,29 @@ const Claimed = () => {
 
 	// Add this render function next to your other render functions
 	const renderMints = () => {
-		// If not on BSC Testnet, render "Please connect to BSC Testnet"
-		if (network !== 'BSC Testnet') {
-			return (
-				<Box sx={{ pt: 8, pb: 6 }}>
-					<Container maxWidth="sm">
-						<Typography variant="body1" align="center" color="text.secondary" paragraph>
-							Switch to BSC Network if you want to claim or view claimed domain on this platform.
+		// If not on BSC Mainnet, Ethereum or Polygon, render "Please connect to BSC Mainnet, Ethereum or Polygon"
+		if (network !== 'BSC Mainnet' && network !== 'Polygon' && network !== 'Ethereum') {
+            return (
+                <Box sx={{ pt: 8, pb: 6 }}>
+                    <Container maxWidth="sm">
+                    <Typography variant="body1" align="center" color="text.secondary" paragraph>
+						Please Login to BNBCHAIN, ETHEREUM or POLYGON Network if you want to claim or view claimed domain on this platform.
 						</Typography>
 						<Stack sx={{ pt: 4 }} direction="row" spacing={2} justifyContent="center">
-							<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={switchNetwork}>
-								Switch Network
-							</ColorButton>
+						<ColorButton align="center" variant="contained" onClick={switchToBNBChain}>
+							Login with BNBCHAIN
+						</ColorButton>
+                        <ColorButton align="center" variant="contained" onClick={switchToEthereum}>
+							Login With ETHEREUM
+						</ColorButton>
+						<ColorButton align="center" variant="contained" onClick={switchToPolygonChain}>
+							Login With POLYGON
+						</ColorButton>
 						</Stack>
-					</Container>
-				</Box>
-			);
-		}
+                    </Container>
+                </Box>
+            );
+        }
 		if (mints.length > 0) {
 			return (
 				<>
@@ -295,7 +384,7 @@ const Claimed = () => {
 							{mints.map((mint, index) => {
 								return (
 									<Grid item xs={12} md={6} key={index}>
-										<CardActionArea component="a" href="/record">
+										<CardActionArea component="a" href={'/' + mint.nem}>
 											<Card sx={{ display: 'flex' }}>
 												<CardContent sx={{ flex: '1', objectFit: 'contain' }}>
 													<Typography component="h2" variant="h5">
@@ -305,11 +394,11 @@ const Claimed = () => {
 														#ID-{mint.id}
 													</Typography>
 													<Typography variant="body2" paragraph>
-														{mint.desc.substring(0, 55)} . . .
+														{mint.desc.substring(0, 45)}...
 													</Typography>
 												</CardContent>
 
-												<CardMedia sx={{ width: 150, objectFit: 'contain' }}
+												<CardMedia sx={{ width: 100, objectFit: 'contain' }}
 													component="img"
 													image={mint.avatar}
 													alt={mint.name} />
@@ -331,17 +420,18 @@ const Claimed = () => {
 	return (
 		<>
 			<AppBar position="static">
-				<Toolbar>
+                <Toolbar>
 					<Typography variant="body1" sx={{ flexGrow: 1, mt: 1 }}>
 						<Image width="130" height="24" src="/usofnem.svg" alt="Usofnem Registrar" />
 					</Typography>
 					<Chip
-						avatar={<Avatar alt="Network logo" src={network.includes("BSC Testnet") ? '/bsc-logo.svg' : '/ethlogo.png'} />}
+						avatar={<Avatar alt="Network logo" src={network.includes("BSC Mainnet") ? '/bsc-logo.svg' : network.includes("Polygon") ? '/polygon-logo.svg' : network.includes("Ethereum") ? '/ethlogo.png' : '/ethlogo.png'} />}
 						label={currentAccount ? (<Typography variant="body1"> {resolved ? (<>{resolved}</>
 						) : (<> {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </>)} {' '} </Typography>) : (<Typography variant="body1"> Not connected </Typography>)}
-						variant="outlined" />
+						variant="outlined"
+					/>
 				</Toolbar>
-			</AppBar>
+            </AppBar>
 			<Container sx={{ mt: 5 }}>
 				{!currentAccount && renderNotConnectedContainer()}
 			</Container>

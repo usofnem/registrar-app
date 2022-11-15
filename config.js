@@ -1,2 +1,2 @@
-export const Usofnem = "0x7ddfcE4733F87097D775a911FD7BF43a6BDbBD5E"
-export const UsofnemResolve = "0x94f6b07e0aBB011D86E53fAea6519c9eE0FBE6FD"
+export const Usofnem = "0x9c6292e497f8fE023AbcfC3bAb3A5895a9180861"
+export const UsofnemResolve = "0xC0679629De4B4b0d3F1F9F7c8Cd1be06520A40BE"

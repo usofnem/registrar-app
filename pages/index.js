@@ -38,7 +38,7 @@ const ColorButton = styled(Button)(({ theme }) => ({
 	},
 }));
 
-const App = () => {
+const Home = () => {
 
 	const [currentAccount, setCurrentAccount] = useState('');
 	// Add some state data propertie
@@ -89,13 +89,13 @@ const App = () => {
 		}
 	}
 
-	const switchNetwork = async () => {
+	const switchToBNBChain = async () => {
 		if (window.ethereum) {
 			try {
-				// Try to switch to the Mumbai testnet
+				// Try to switch to the BNB Chain
 				await window.ethereum.request({
 					method: 'wallet_switchEthereumChain',
-					params: [{ chainId: '0x61' }], // Check networks.js for hexadecimal network ids
+					params: [{ chainId: '0x38' }], // Check networks.js for hexadecimal network ids
 				});
 			} catch (error) {
 				// This error code means that the chain we want has not been added to MetaMask
@@ -106,15 +106,97 @@ const App = () => {
 							method: 'wallet_addEthereumChain',
 							params: [
 								{
-									chainId: '0x61',
-									chainName: 'BSC Testnet',
-									rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+									chainId: '0x38',
+									chainName: 'BSC Mainnet',
+									rpcUrls: ['https://rpc.ankr.com/bsc'],
 									nativeCurrency: {
-										name: "BSC Testnet",
+										name: "BSC Mainnet",
 										symbol: "BNB",
 										decimals: 18
 									},
-									blockExplorerUrls: ["https://testnet.bscscan.com"]
+									blockExplorerUrls: ["https://bscscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
+	const switchToPolygonChain = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Polygon Chain
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x89' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x89',
+									chainName: 'Polygon',
+									rpcUrls: ['https://rpc.ankr.com/polygon'],
+									nativeCurrency: {
+										name: "Polygon",
+										symbol: "MATIC",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://polygonscan.com"]
+								},
+							],
+						});
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				console.log(error);
+			}
+		} else {
+			// If window.ethereum is not found then MetaMask is not installed
+			alert('MetaMask is not installed. Please install it to use this app: https://metamask.io/download.html');
+		}
+	}
+
+	const switchToEthereum = async () => {
+		if (window.ethereum) {
+			try {
+				// Try to switch to the Polygon Chain
+				await window.ethereum.request({
+					method: 'wallet_switchEthereumChain',
+					params: [{ chainId: '0x1' }], // Check networks.js for hexadecimal network ids
+				});
+			} catch (error) {
+				// This error code means that the chain we want has not been added to MetaMask
+				// In this case we ask the user to add it to their MetaMask
+				if (error.code === 4902) {
+					try {
+						await window.ethereum.request({
+							method: 'wallet_addEthereumChain',
+							params: [
+								{
+									chainId: '0x1',
+									chainName: 'Ethereum',
+									rpcUrls: ['https://rpc.ankr.com/eth'],
+									nativeCurrency: {
+										name: "Ethereum",
+										symbol: "ETH",
+										decimals: 18
+									},
+									blockExplorerUrls: ["https://etherscan.io"]
 								},
 							],
 						});
@@ -182,7 +264,7 @@ const App = () => {
 		}
 	};
 
-	const userRegister = async () => {
+	const userBNBRegister = async () => {
 		// Don't run if the field is empty
 		if (!username, !category) { return }
 		// Alert the user if the domain is too short
@@ -201,18 +283,8 @@ const App = () => {
 			return;
 		}
 		// Calculate price based on length of username (change this to match your contract)
-		const price = username.length === 1 ? '0.002' : username.length === 2 ? '0.002' : username.length === 3 ? '0.002' : username.length === 4 ? '0.002' : username.length === 5 ? '0.0015' : username.length === 6 ? '0.0015' : username.length === 7 ? '0.0015' : username.length === 8 ? '0.001' : '0.0005';
+		const price = username.length === 1 ? '0.01' : username.length === 2 ? '0.01' : username.length === 3 ? '0.01' : username.length === 4 ? '0.01' : username.length === 5 ? '0.007' : username.length === 6 ? '0.007' : username.length === 7 ? '0.007' : username.length === 8 ? '0.005' : '0.003';
 		console.log("Minting domain", username, "with price", price);
-		toast('Minting domain', username, 'with price', price,
-			{
-				icon: '👏',
-				style: {
-					borderRadius: '10px',
-					background: '#333',
-					color: '#fff',
-				},
-			}
-		);
 		try {
 			const { ethereum } = window;
 			if (ethereum) {
@@ -220,10 +292,10 @@ const App = () => {
 				const signer = provider.getSigner();
 				const contract = new ethers.Contract(Usofnem, UsofnemAbi.abi, signer);
 
-				console.log("Going to pop wallet now to pay gas...")
-				toast('Going to pop wallet to pay gas...!',
+				console.log("Checking Domain Names ...")
+				toast('Checking Domain Names ...',
 					{
-						icon: '💲',
+						icon: '☕',
 						style: {
 							borderRadius: '10px',
 							background: '#333',
@@ -231,13 +303,14 @@ const App = () => {
 						},
 					}
 				);
+
 				let tx = await contract.register(username, category, { value: ethers.utils.parseEther(price) });
 				// Wait for the transaction to be mined
 				const receipt = await tx.wait();
 
 				// Check if the transaction was successfully completed
 				if (receipt.status === 1) {
-					console.log("Domain minted! https://testnet.bscscan.com/tx/" + tx.hash);
+					console.log("Domain minted! https://bscscan.com/tx/" + tx.hash);
 					toast('Success! Please wait ...!',
 						{
 							icon: '👏',
@@ -274,6 +347,208 @@ const App = () => {
 		}
 		catch (error) {
 			console.log(error);
+			toast('Oh no! Domain already taken.',
+				{
+					icon: '🤬',
+					style: {
+						borderRadius: '10px',
+						background: '#333',
+						color: 'red',
+					},
+				}
+			);
+		}
+	}
+
+	const userPolygonRegister = async () => {
+		// Don't run if the field is empty
+		if (!username, !category) { return }
+		// Alert the user if the domain is too short
+		if (username.length < 1) {
+			alert('Domain must be at least 1 characters long');
+			toast('Domain must be at least 1 characters long',
+				{
+					icon: '👏',
+					style: {
+						borderRadius: '10px',
+						background: '#333',
+						color: '#fff',
+					},
+				}
+			);
+			return;
+		}
+		// Calculate price based on length of username (change this to match your contract)
+		const price = username.length === 1 ? '2.5' : username.length === 2 ? '2.5' : username.length === 3 ? '2.5' : username.length === 4 ? '2.5' : username.length === 5 ? '2' : username.length === 6 ? '2' : username.length === 7 ? '2' : username.length === 8 ? '1.5' : '1';
+		console.log("Minting domain", username, "with price", price);
+		try {
+			const { ethereum } = window;
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum);
+				const signer = provider.getSigner();
+				const contract = new ethers.Contract(Usofnem, UsofnemAbi.abi, signer);
+
+				console.log("Checking Domain Names ...")
+				toast('Checking Domain Names ...',
+					{
+						icon: '☕',
+						style: {
+							borderRadius: '10px',
+							background: '#333',
+							color: '#fff',
+						},
+					}
+				);
+
+				let tx = await contract.register(username, category, { value: ethers.utils.parseEther(price) });
+				// Wait for the transaction to be mined
+				const receipt = await tx.wait();
+
+				// Check if the transaction was successfully completed
+				if (receipt.status === 1) {
+					console.log("Domain minted! https://polygonscan.com/tx/" + tx.hash);
+					toast('Success! Please wait ...!',
+						{
+							icon: '👏',
+							style: {
+								borderRadius: '10px',
+								background: '#333',
+								color: '#fff',
+							},
+						}
+					);
+
+					// Open Claimed page after 2 seconds
+					setTimeout(() => {
+						router.push('/claimed');
+					}, 2000);
+
+					setUsername('');
+					setCategory('');
+				}
+				else {
+					alert("Transaction failed! Please try again");
+					toast('Transaction failed! Please try again',
+						{
+							icon: '❌',
+							style: {
+								borderRadius: '10px',
+								background: '#333',
+								color: '#fff',
+							},
+						}
+					);
+				}
+			}
+		}
+		catch (error) {
+			console.log(error);
+			toast('Oh no! Domain already taken.',
+				{
+					icon: '🤬',
+					style: {
+						borderRadius: '10px',
+						background: '#333',
+						color: 'red',
+					},
+				}
+			);
+		}
+	}
+
+	const userETHRegister = async () => {
+		// Don't run if the field is empty
+		if (!username, !category) { return }
+		// Alert the user if the domain is too short
+		if (username.length < 1) {
+			alert('Domain must be at least 1 characters long');
+			toast('Domain must be at least 1 characters long',
+				{
+					icon: '👏',
+					style: {
+						borderRadius: '10px',
+						background: '#333',
+						color: '#fff',
+					},
+				}
+			);
+			return;
+		}
+		// Calculate price based on length of username (change this to match your contract)
+		const price = username.length === 1 ? '0.002' : username.length === 2 ? '0.002' : username.length === 3 ? '0.002' : username.length === 4 ? '0.002' : username.length === 5 ? '0.0015' : username.length === 6 ? '0.0015' : username.length === 7 ? '0.0015' : username.length === 8 ? '0.0007' : '0.0005';
+		console.log("Minting domain", username, "with price", price);
+		try {
+			const { ethereum } = window;
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum);
+				const signer = provider.getSigner();
+				const contract = new ethers.Contract(Usofnem, UsofnemAbi.abi, signer);
+
+				console.log("Checking Domain Names ...")
+				toast('Checking Domain Names ...',
+					{
+						icon: '☕',
+						style: {
+							borderRadius: '10px',
+							background: '#333',
+							color: '#fff',
+						},
+					}
+				);
+
+				let tx = await contract.register(username, category, { value: ethers.utils.parseEther(price) });
+				// Wait for the transaction to be mined
+				const receipt = await tx.wait();
+
+				// Check if the transaction was successfully completed
+				if (receipt.status === 1) {
+					console.log("Domain minted! https://etherscan.io/tx/" + tx.hash);
+					toast('Success! Please wait ...!',
+						{
+							icon: '👏',
+							style: {
+								borderRadius: '10px',
+								background: '#333',
+								color: '#fff',
+							},
+						}
+					);
+
+					// Open Claimed page after 2 seconds
+					setTimeout(() => {
+						router.push('/claimed');
+					}, 2000);
+
+					setUsername('');
+					setCategory('');
+				}
+				else {
+					alert("Transaction failed! Please try again");
+					toast('Transaction failed! Please try again',
+						{
+							icon: '❌',
+							style: {
+								borderRadius: '10px',
+								background: '#333',
+								color: '#fff',
+							},
+						}
+					);
+				}
+			}
+		}
+		catch (error) {
+			console.log(error);
+			toast('Oh no! Domain already taken.',
+				{
+					icon: '🤬',
+					style: {
+						borderRadius: '10px',
+						background: '#333',
+						color: 'red',
+					},
+				}
+			);
 		}
 	}
 
@@ -321,16 +596,24 @@ const App = () => {
 
 	// Form to enter username and data
 	const renderRegisterForm = () => {
-		// If not on BSC Testnet, render "Please connect to BSC Testnet"
-		if (network !== 'BSC Testnet') {
-			return (
-				<NotConnected>
-					<ColorButton align="center" sx={{ width: '70%', mt: 4, mb: 4 }} variant="contained" onClick={switchNetwork}>
-						Switch Network
-					</ColorButton>
-				</NotConnected>
-			);
-		}
+		// If not on BSC Mainnet, Ethereum or Polygon, render "Please connect to BSC Mainnet, Ethereum or Polygon"
+		if (network !== 'BSC Mainnet' && network !== 'Polygon' && network !== 'Ethereum') {
+            return (
+                <>
+				    <NotConnected>
+						<ColorButton align="center" variant="contained" onClick={switchToBNBChain}>
+							Login with BNBCHAIN
+						</ColorButton>
+                        <ColorButton align="center" variant="contained" onClick={switchToEthereum}>
+							Login With ETHEREUM
+						</ColorButton>
+						<ColorButton align="center" variant="contained" onClick={switchToPolygonChain}>
+							Login With POLYGON
+						</ColorButton>
+				    </NotConnected>
+                </>
+            );
+        }
 
 		// The rest of the function remains the same
 		return (
@@ -360,7 +643,7 @@ const App = () => {
 
 					{(
 						<Stack spacing={2} direction="row">
-							<ColorButton sx={{ width: '100%', mt: 4, mb: 4 }} variant="contained" onClick={userRegister}>
+							<ColorButton sx={{ width: '100%', mt: 4, mb: 4 }} variant="contained" onClick={network.includes("BSC Mainnet") ? userBNBRegister : network.includes("Ethereum") ? userETHRegister : userPolygonRegister}>
 								Register
 							</ColorButton>
 						</Stack>
@@ -378,17 +661,18 @@ const App = () => {
 	return (
 		<>
 			<AppBar position="static">
-				<Toolbar>
+                <Toolbar>
 					<Typography variant="body1" sx={{ flexGrow: 1, mt: 1 }}>
 						<Image width="130" height="24" src="/usofnem.svg" alt="Usofnem Registrar" />
 					</Typography>
 					<Chip
-						avatar={<Avatar alt="Network logo" src={network.includes("BSC Testnet") ? '/bsc-logo.svg' : '/ethlogo.png'} />}
+						avatar={<Avatar alt="Network logo" src={network.includes("BSC Mainnet") ? '/bsc-logo.svg' : network.includes("Polygon") ? '/polygon-logo.svg' : network.includes("Ethereum") ? '/ethlogo.png' : '/ethlogo.png'} />}
 						label={currentAccount ? (<Typography variant="body1"> {resolved ? (<>{resolved}</>
 						) : (<> {currentAccount.slice(0, 6)}...{currentAccount.slice(-4)} </>)} {' '} </Typography>) : (<Typography variant="body1"> Not connected </Typography>)}
-						variant="outlined" />
+						variant="outlined"
+					/>
 				</Toolbar>
-			</AppBar>
+            </AppBar>
 			<Container sx={{ mt: 5 }}>
 				{!currentAccount && renderNotConnectedContainer()}
 			</Container>
@@ -404,4 +688,4 @@ const App = () => {
 	);
 }
 
-export default App;
+export default Home;

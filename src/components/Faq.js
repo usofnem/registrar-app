@@ -70,6 +70,23 @@ export default function Faq() {
           </Typography>
         </AccordionDetails>
       </Accordion>
+      <Accordion>
+        <AccordionSummary
+          expandIcon={<ExpandMore />}
+          aria-controls="panel3a-content"
+          id="panel3a-header"
+        >
+          <Typography>Where is the contract deploy and what is the network ?</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2">
+            According the roadmad, we have plan to deploy this project to multiple chain with evm support like BNB, ETH, POLYGON, AVAX, KCC and more.
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 2}}>
+            And we use only one smartcontract address (0x9c6292e497f8fe023abcfc3 bab3a5895a9180861) with multiple chain.
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
     </div>
   );
 }
